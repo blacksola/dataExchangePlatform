@@ -10,7 +10,6 @@
 </head>
 <body>
 	<script>
-	
 	 var dict = {	
 			 /*
 			 getDictName: function(f, d) {
@@ -53,7 +52,7 @@
 	 * @param {any} value  当前值
 	 * @param {any} row 当前行
 	 * @param {any} index 当前行索引
-	 * @returns 
+	 * @returns row[field+'dtname']
 	 */
 	function joinformatter(value, row, index) {
 		try {
@@ -63,7 +62,6 @@
 			else
 				return value;
 		} catch (e) {
-			console.log(e);
 			return value;
 		}
 	}
@@ -83,26 +81,6 @@
 		        }
 		    }
 		} */
-
-		/* function formatterDict(value, row, index) {
-		    var dictText = "";
-		    if (this.field == "ssyw") {
-		        dictText = a.getDictText('SYB', row.ssyw);
-		    }
-		    if (this.field == "sfcfwt") {
-		        dictText = a.getDictText('SF', row.sfcfwt);
-		    }
-
-		    return dictText;
-		} 
-	
-	function formatter_XMTSZT(value,row,index){
-		var dictText = "";
-		dictText = getArray(XMTSZT,row.xmtszt);
-		return dcitText;
-	}
-	
-	*/
 	
 	
 	/**
@@ -112,7 +90,7 @@
 	 * @param {any} value  当前值
 	 * @param {any} row 当前行
 	 * @param {any} index 当前行索引
-	 * @returns 
+	 * @returns dictText
 	 */
 	function formatterDict(value, row, index) {
 	    var dictText = "";
@@ -128,13 +106,6 @@
 
 	    return dictText;
 	} 
-
-	
-	
-	
-	
-
-	
 
 	
 	(function($){  
@@ -154,14 +125,20 @@
 		sgBaseDataGrid = $('#sgBaseDataGrid').datagrid({
             url : '<%=path%>/construction/queryConstructionBaseProjectList',
             striped : true,
-            rownumbers : false,
+            rownumbers : true,
             pagination : true,
             singleSelect : true,
+            sortName :"sgbaseid",
+            sortOrder:'asc',
             width:'auto',
-            idField : 'sjbaseid',
-            pageSize : 15,
-            pageList : [ 15, 30, 50, 100, 300, 500, 1000, 2000 ],
-            columns : [ [ {
+            idField : 'sgbaseid',
+            pageSize : 10,
+            pageList : [ 10,15, 30, 50, 100, 300, 500, 1000, 2000 ],
+            columns : [ [  {
+                width : '220',
+                title : 'sgbaseid',
+                field : 'sgbaseid',
+            },{
                 width : '210',
                 title : '项目名称',
                 field : 'stdname',
@@ -204,42 +181,99 @@
         });		
 	});
 	
+	
+	function allPrpos(obj,formId) { 
+		var returnMess = {};
+		for (var p in obj){ 
+			if(obj[p] != null || obj[p] != "null" || obj[p] != "" || obj[p] != undefined) {
+				returnMess[formId+'.' + p] = obj[p];
+			}
+		} 
+		return returnMess;
+	}
+	
+	function allPrpos1(obj,formId) { 
+		var obj = obj[0];
+		var returnMess = {};
+		for (var p in obj){ 
+			if(obj[p] != null || obj[p] != "null" || obj[p] != "" || obj[p] != undefined) {
+				returnMess[formId+'.' + p] = obj[p];
+			}
+		} 
+		return returnMess;
+	}
+	
+
 	function doSearch() {
 		var data = {'params' : JSON.stringify($("#searchSgBaseForm").serializeJson())};
 		sgBaseDataGrid.datagrid('load', data);
 	}
 	
-	function doUpdate() {
-		window.location.href = "<%=request.getContextPath()%>/construction/updateConstructionBaseProject";
-	}
-	
-	
-
-	
 	var sgBase_dialog;
 	//显示弹出窗口 新增：row为空 编辑:row有值
 	function doUpdate(row) {
 		var _url = "<%=request.getContextPath()%>/construction/updateConstructionBaseProject";
-		if (row != undefined && row.id) {
-			//_url = ctx+"/userAction/toUpdate/"+row.id;
-		}
+		
 	    //弹出对话窗口
 	    sgBase_dialog = $('<div/>').dialog({
 	    	title : "项目及市场经营信息",
 			top: 0,
 			width : 1000,
 			height : '100%',
-	        modal: true,
+	        modal: true, 
 	        minimizable: true,
 	        maximizable: true,
 	        href: _url,
 	        onLoad: function () {
-	            if (row) {
-	            	$('#sgProjectBaseForm').form('load', row);
-	            } else {
-	            	
-	            }
-
+	        	if(row){
+	        		$.ajax({
+		        		url : "<%=request.getContextPath()%>/construction/getConstructionProjectBase/",
+		    			type:"POST",
+		    			data : {
+		    				'id':row.sgbaseid,
+		    			},
+		    			async:false,
+		    			
+		    			success: function(h) {
+		    				var data = eval('(' + h + ')');
+		    				data = allPrpos(data,'sgbase');
+		    				console.log(data);
+		    				$("#sgbase").form('load',data);
+		    				//$("#sgbase").fill(data);
+		    			}
+		    		});
+	        		$.ajax({
+		        		url : "<%=request.getContextPath()%>/construction/getConstructionProjectTrack/",
+		    			type:"POST",
+		    			data : {
+		    				'id':row.sgbaseid,
+		    			},
+		    			async:false,
+		    			success: function(h) {
+		    				var data = eval('(' + h + ')');
+		    				data = allPrpos1(data,'sgtrack');
+		    				console.log(data);
+		    				$("#sgtrack").form('load',data);
+		    				//$("#sgbase").fill(data);
+		    			}
+		    		});
+	        		$.ajax({
+		        		url : "<%=request.getContextPath()%>/construction/getJtOtherCompnayBids/",
+		    			type:"POST",
+		    			data : {
+		    				'id':row.sgbaseid,
+		    			},
+		    			async:false,
+		    			success: function(h) {
+		    				var data = eval('(' + h + ')');
+		    				//data = allPrpos1(data,'sgtrack');
+		    				console.log(data);
+		    				//$("#dgOtherBid").datagrid('load',data);
+		    				$('#dgOtherBid').datagrid({ data: data });
+		    				//$("#sgbase").fill(data);
+		    			}
+		    		});
+	        	}
 	        },
 	        buttons: [
 	            {
@@ -262,6 +296,32 @@
 	        }
 	    });
 	}
+
+	//编辑
+	function doEdit() {
+		//选中的行（第一次选择的行）
+		var row = $('#sgBaseDataGrid').datagrid('getSelected');
+		if (row) {
+			doUpdate(row);
+		} else {
+			$.messager.alert("提示", "您未选择任何操作对象，请选择一行数据！");
+		}
+	}
+	
+	function doDelete(){ 
+		var row = $('#sgBaseDataGrid').datagrid('getSelected');
+		if(row){
+			$.messager.confirm('提示', '确定要删除吗?',function(r){ if(r){$.post("<%=request.getContextPath()%>/construction/deleteConstructionProjectBase",{"id":row.sgbaseid},
+			  function(data){
+				var obj = JSON.parse(data);
+				$.messager.alert("提示",obj.returnMsg);
+				sgBaseDataGrid.datagrid('reload');
+			  },
+			  "text")}});//这里返回的类型有：json,html,xml,text
+			}else{
+			$.messager.alert("提示","请选择要删除的记录");
+		}
+	}
 	//清空查询条件
     function clearfrom() {
         $('#searchSgBaseForm').form('clear');
@@ -274,13 +334,13 @@
 				class="easyui-linkbutton" onclick="doUpdate();">新增</a> <a
 				href="javascript:void(0);"
 				data-options="iconCls:'icon-edit',plain:true"
-				class="easyui-linkbutton" onclick="doUpdate();">修改</a> <a
+				class="easyui-linkbutton" onclick="doEdit();">修改</a> <a
 				href="javascript:void(0);"
 				data-options="iconCls:'icon-remove',plain:true"
-				class="easyui-linkbutton" onclick="doUpdate();">删除</a> <a
+				class="easyui-linkbutton" onclick="doDelete();">删除</a> <!-- <a
 				href="javascript:void(0);"
 				data-options="iconCls:'icon-cut',plain:true"
-				class="easyui-linkbutton" onclick="doUpdate();">导出</a> <br> <span>组织机构</span>
+				class="easyui-linkbutton" onclick="doUpdate();">导出</a>  --><br> <span>组织机构</span>
 			<input name="sgProjectBase.orgunit_=" class="easyui-textbox">
 			<span>中交行业分类</span> <input name="sgProjectBase.zjhyflx_="
 				data-options="prompt:'请输入中交行业分类',
@@ -301,8 +361,8 @@
 				class="easyui-linkbutton" onclick="clearfrom();">清空</a>
 		</form>
 	</div>
-	<table id="sgBaseDataGrid" class="easyui-datagrid"
-		style="width: 95%; height: 610px" rownumbers="true" pagination="true">
+	<table id="sgBaseDataGrid" class="easyui-datagrid" style="width:95%;height:610px"
+			rownumbers="true" pagination="true">
 	</table>
 </body>
 </html>
